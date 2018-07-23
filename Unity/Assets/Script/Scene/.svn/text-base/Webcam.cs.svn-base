@@ -1,0 +1,72 @@
+﻿/*
+ * Webcam.cs
+ *
+ * creates camera-through AR mode
+ * (placed under "CanvasWebcam" Prefab)
+ */
+
+using UnityEngine;
+using System.Collections;
+using UnityEngine.UI;
+
+public class Webcam : MonoBehaviour
+{
+	WebCamDevice[] devices;
+	WebCamTexture webcamTexture;
+
+	RawImage rawimg;
+
+	void Start()
+	{
+		// AR mode - turn on webcam onto canvas raw image
+
+		devices = WebCamTexture.devices;
+		// max WebCamTexture res: 1280x720
+		webcamTexture = new WebCamTexture(devices[0].name, 720, 1280);
+
+		// webcam appearance on iOS flipped. rotate.
+		this.GetComponent<RawImage>().transform.localScale = new Vector3 (1, -1, 1);
+		this.GetComponent<RectTransform>().transform.eulerAngles = new Vector3 (0, 0, -90);
+
+		for (int i = 0; i < devices.Length; i++) 
+		{
+			Debug.Log (devices[i].name);
+		}
+
+		rawimg = GetComponent<RawImage>();
+		rawimg.texture = webcamTexture;
+		rawimg.material.mainTexture = webcamTexture;
+	}
+
+	void SwitchMaterial(string mat)
+	{
+		// transparent wall when AR mode
+		GameObject.Find("PlaneWall-L").GetComponent<MeshRenderer>().material = Resources.Load(mat) as Material;
+		GameObject.Find("PlaneWall-R").GetComponent<MeshRenderer>().material = Resources.Load(mat) as Material;
+		GameObject.Find("PlaneWall-B").GetComponent<MeshRenderer>().material = Resources.Load(mat) as Material;
+		GameObject.Find("PlaneWall-F").GetComponent<MeshRenderer>().material = Resources.Load(mat) as Material;
+		GameObject.Find("PlaneRoof").GetComponent<MeshRenderer>().material = Resources.Load(mat) as Material;
+	}
+
+	void ArPress()
+	{
+		if (webcamTexture.isPlaying) 
+		{
+			// change walls
+			SwitchMaterial("MaterialPlaneFade");
+			GameObject.Find("PlaneGrid").GetComponent<MeshRenderer>().material = Resources.Load("MaterialPlaneGradient") as Material;
+			// apply video frame
+			this.GetComponent<RawImage>().enabled = false;
+			webcamTexture.Stop();
+		} 
+		else 
+		{
+			// change walls
+			SwitchMaterial ("MaterialPlaneFade");
+			GameObject.Find("PlaneGrid").GetComponent<MeshRenderer>().material = Resources.Load("MaterialPlaneFade") as Material;
+			// apply video frame
+			this.GetComponent<RawImage>().enabled = true;
+			webcamTexture.Play();
+		}
+	}
+}

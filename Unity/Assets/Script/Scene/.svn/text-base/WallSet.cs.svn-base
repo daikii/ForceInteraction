@@ -1,0 +1,72 @@
+﻿/*
+ * WallSet.cs
+ *
+ * set position and rotation of wall depending on the ground-plane size
+ * (placed under "PlaneWall" GameObject)
+ */
+
+using UnityEngine;
+using System.Collections;
+
+public class WallSet : MonoBehaviour
+{
+	public PlaneGrid plane;
+
+	// set ID to each wall
+	public int id;
+	int fixedHeight;
+	int scaleFactor;
+	bool isDone;
+
+	void Start()
+	{
+		fixedHeight = 50;
+		scaleFactor = 5;
+		isDone = false;
+	}
+
+	void Update()
+	{
+		// wait until initial calculation @PlaneGrid ends
+		if (isDone == false && plane.isStart == true) 
+		{
+			// W left
+			if (id == 0) 
+			{
+				transform.rotation = Quaternion.Euler (0, 0, -90);
+				transform.position = new Vector3 (-0.0f, fixedHeight / 2f, plane.widthScale / 2f - 1f);
+				transform.localScale = new Vector3 (fixedHeight / (2 * scaleFactor), 1f, plane.widthScale / scaleFactor);
+			}
+			// WL right
+			else if (id == 1) 
+			{
+				transform.rotation = Quaternion.Euler (0, 0, 90);
+				transform.position = new Vector3 (plane.lengthScale + 0.0f, fixedHeight / 2f, plane.widthScale / 2f - 1f);
+				transform.localScale = new Vector3 (fixedHeight / (2 * scaleFactor), 1f, plane.widthScale / scaleFactor);
+			}
+			// L back
+			else if (id == 2) 
+			{
+				transform.rotation = Quaternion.Euler (90, 0, 0);
+				transform.position = new Vector3 (plane.lengthScale / 2f, fixedHeight / 2f, -1.1f);
+				transform.localScale = new Vector3 (plane.lengthScale / scaleFactor, 1f, fixedHeight / (2 * scaleFactor));
+			}
+			// LW front
+			else if (id == 3) 
+			{
+				transform.rotation = Quaternion.Euler (-90, 0, 0);
+				transform.position = new Vector3 (plane.lengthScale / 2f, fixedHeight / 2f, plane.widthScale - 0.9f);
+				transform.localScale = new Vector3 (plane.lengthScale / scaleFactor, 1f, fixedHeight / (2 * scaleFactor));
+			}
+			// roof
+			else if (id == 4) 
+			{
+				transform.rotation = Quaternion.Euler (-180, 0, 0);
+				transform.position = new Vector3 (plane.lengthScale / 2f, fixedHeight, plane.widthScale / 2f);
+				transform.localScale = new Vector3 (plane.lengthScale / scaleFactor, 1f, plane.widthScale / scaleFactor);
+			}
+
+			isDone = true;
+		}
+	}
+}

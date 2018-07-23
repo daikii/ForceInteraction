@@ -1,0 +1,325 @@
+﻿/*
+ * PlaneGridOld.cs
+ *
+ * dynamically creates meshed plane
+ * old version - able to change mode and place cubes
+ * (placed under "PlaneGrid" GameObject)
+ */
+
+using UnityEngine;
+using System.Collections;
+using System.Collections.Generic;
+
+[RequireComponent (typeof(MeshFilter))]
+[RequireComponent (typeof(MeshCollider))]
+[RequireComponent (typeof(MeshRenderer))]
+
+public class PlaneGridOld: MonoBehaviour
+{
+	public Transform aim;
+	public Mode mode;
+
+	// each brick as a byte
+	public byte[,,] map;
+
+	// plane size
+	public int lengthAc;
+	public int widthAc;
+	public int lengthScale;
+	public int widthScale;
+	public int height;
+	public int offset;
+	public int scale;
+	public bool isStart = false;
+
+	protected Mesh mesh;
+	protected MeshCollider meshCollider;
+
+	protected List<Vector3> vert;
+	protected List<int> tri;
+	protected List<Vector2> uv;
+	protected List<Vector3> norm;
+
+	void Awake()
+	{
+		// actual mocap dimension in centimeters
+		lengthAc = 400; // 440
+		widthAc = 400; // 420
+		offset = 40; // 20
+		scale = 30; 
+		
+		// 1 block = 30cm
+		lengthScale = lengthAc / scale + offset;
+		widthScale = widthAc / scale + offset;
+		height = 3;
+	}
+
+	void Start()
+	{
+		mesh = new Mesh();
+		GetComponent<MeshFilter>().mesh = mesh;
+		meshCollider = GetComponent<MeshCollider>();
+
+		vert = new List<Vector3>();
+		tri = new List<int>();
+		uv = new List<Vector2>();
+		norm = new List<Vector3>();
+
+		// create first-layer grid plane
+		map = new byte[lengthScale, height, widthScale];
+		for (int x = 0; x < lengthScale; x++)
+		{
+			for (int z = 0; z < widthScale; z++)
+			{
+				map[x, 0, z] = 1;
+			}
+		}
+
+		// generate meshed grid plane
+		GeneratePlane();
+
+		isStart = true;
+	}
+
+	void DrawCell(Vector3 coord)
+	{
+		Vector3 offsetX = Vector3.right;
+		Vector3 offsetZ = Vector3.back;
+
+		int index = vert.Count;
+
+		// vertices
+		vert.Add(coord);
+		vert.Add(coord + offsetX);
+		vert.Add(coord + offsetZ);
+		vert.Add(coord + offsetX + offsetZ);
+
+		// triangles/polygons
+		tri.Add(index + 0);
+		tri.Add(index + 1);
+		tri.Add(index + 2);
+		tri.Add(index + 3);
+		tri.Add(index + 2);
+		tri.Add(index + 1);
+
+		// uv
+		uv.Add(new Vector2(0, 0));
+		uv.Add(new Vector2(0, 1));
+		uv.Add(new Vector2(1, 0));
+		uv.Add(new Vector2(0, 0));
+
+		// normals
+		norm.Add(Vector3.forward);
+		norm.Add(Vector3.forward);
+		norm.Add(Vector3.forward);
+		norm.Add(Vector3.forward);
+	}
+
+	void DrawWall(Vector3 coord)
+	{
+		Vector3 offsetX = Vector3.right;
+		Vector3 offsetZ = Vector3.back;
+
+		///////////////////////////////
+		// back face
+		//////////////////////////////
+		
+		int index = vert.Count;
+
+		vert.Add(coord + offsetX);
+		vert.Add(coord);
+		vert.Add(new Vector3(coord.x, 0, coord.z) + offsetX);
+		vert.Add(new Vector3(coord.x, 0, coord.z));
+
+		tri.Add(index + 0);
+		tri.Add(index + 1);
+		tri.Add(index + 2);
+		tri.Add(index + 3);
+		tri.Add(index + 2);
+		tri.Add(index + 1);
+
+		uv.Add(new Vector2(0, 0));
+		uv.Add(new Vector2(0, 1));
+		uv.Add(new Vector2(1, 0));
+		uv.Add(new Vector2(0, 0));
+		
+		norm.Add(Vector3.forward);
+		norm.Add(Vector3.forward);
+		norm.Add(Vector3.forward);
+		norm.Add(Vector3.forward);
+
+		///////////////////////////////
+		// left face
+		//////////////////////////////
+		
+		index = vert.Count;
+		
+		vert.Add(coord);
+		vert.Add(coord + offsetZ);
+		vert.Add(new Vector3(coord.x, 0, coord.z));
+		vert.Add(new Vector3(coord.x, 0, coord.z) + offsetZ);
+		
+		tri.Add(index + 0);
+		tri.Add(index + 1);
+		tri.Add(index + 2);
+		tri.Add(index + 3);
+		tri.Add(index + 2);
+		tri.Add(index + 1);
+
+		uv.Add(new Vector2(0, 0));
+		uv.Add(new Vector2(0, 1));
+		uv.Add(new Vector2(1, 0));
+		uv.Add(new Vector2(0, 0));
+		
+		norm.Add(Vector3.forward);
+		norm.Add(Vector3.forward);
+		norm.Add(Vector3.forward);
+		norm.Add(Vector3.forward);
+		
+		///////////////////////////////
+		// right face
+		//////////////////////////////
+		
+		index = vert.Count;
+		
+		vert.Add(coord + offsetX + offsetZ);
+		vert.Add(coord + offsetX);
+		vert.Add(new Vector3(coord.x, 0, coord.z) + offsetX + offsetZ);
+		vert.Add(new Vector3(coord.x, 0, coord.z) + offsetX);
+		
+		tri.Add(index + 0);
+		tri.Add(index + 1);
+		tri.Add(index + 2);
+		tri.Add(index + 3);
+		tri.Add(index + 2);
+		tri.Add(index + 1);
+
+		uv.Add(new Vector2(0, 0));
+		uv.Add(new Vector2(0, 1));
+		uv.Add(new Vector2(1, 0));
+		uv.Add(new Vector2(0, 0));
+		
+		norm.Add(Vector3.forward);
+		norm.Add(Vector3.forward);
+		norm.Add(Vector3.forward);
+		norm.Add(Vector3.forward);
+		
+		///////////////////////////////
+		// front face
+		//////////////////////////////
+		
+		index = vert.Count;
+		
+		vert.Add(coord + offsetZ);
+		vert.Add(coord + offsetX + offsetZ);
+		vert.Add(new Vector3(coord.x, 0, coord.z) + offsetZ);
+		vert.Add(new Vector3(coord.x, 0, coord.z) + offsetX + offsetZ);
+		
+		tri.Add(index + 0);
+		tri.Add(index + 1);
+		tri.Add(index + 2);
+		tri.Add(index + 3);
+		tri.Add(index + 2);
+		tri.Add(index + 1);
+
+		uv.Add(new Vector2(0, 0));
+		uv.Add(new Vector2(0, 1));
+		uv.Add(new Vector2(1, 0));
+		uv.Add(new Vector2(0, 0));
+		
+		norm.Add(Vector3.forward);
+		norm.Add(Vector3.forward);
+		norm.Add(Vector3.forward);
+		norm.Add(Vector3.forward);
+	}
+
+	void GeneratePlane()
+	{
+		vert.Clear();
+		tri.Clear();
+		uv.Clear();
+		norm.Clear();
+
+		// clear out triangles just in case
+		mesh.triangles = tri.ToArray();
+
+		for (int x = 0; x < lengthScale; x++)
+		{
+			for (int y = 0; y < height; y++)
+			{
+				for (int z = 0; z < widthScale; z++)
+				{
+					if (map[x, y, z] == 1)
+					{
+						Vector3 coord = new Vector3(x, y, z);
+						DrawCell(coord);
+
+						// create walls for cells higher than bottom surface
+						if (y > 0)
+						{
+							DrawWall(coord);
+						}
+					}
+				}
+			}
+		}
+
+		// update mesh
+		mesh.vertices = vert.ToArray();
+		mesh.triangles = tri.ToArray();
+		mesh.uv = uv.ToArray();
+		mesh.normals = norm.ToArray();
+
+		mesh.RecalculateNormals();
+
+		// update collision
+		meshCollider.sharedMesh = null;
+		meshCollider.sharedMesh = mesh;
+	}
+
+	void AddCell(Vector3 aimPos)
+	{
+		if ((int)aimPos.y + 1 < height)
+		{
+			// add surface cell
+			map [(int)aimPos.x, (int)aimPos.y + 1, (int)aimPos.z] = 1;
+			// delete lower cell
+			map [(int)aimPos.x, (int)aimPos.y, (int)aimPos.z] = 0;
+		}
+	}
+
+	void DeleteCell(Vector3 aimPos)
+	{
+		if ((int)aimPos.y > 0)
+		{
+			// delete surface cell
+			map [(int)aimPos.x, (int)aimPos.y, (int)aimPos.z] = 0;
+			// add lower cell
+			map [(int)aimPos.x, (int)aimPos.y - 1, (int)aimPos.z] = 1;
+		}
+	}
+
+	void Update()
+	{
+		// mouse click and add brick
+		if ((Input.touchCount == 1 && Input.GetTouch(0).phase == TouchPhase.Began) || Input.GetMouseButtonDown(0))
+		{
+			Vector3 tempPos = GameObject.Find ("PlayerFP").transform.position;
+
+			// avoid placing a hall nearby player - fall off the plane
+			if (Mathf.Abs(aim.position.x - tempPos.x) > 1f || Mathf.Abs (aim.position.z - tempPos.z) > 1f)
+			{
+				if (mode.actionMode == 2)
+				{
+					AddCell(aim.position);
+					GeneratePlane();
+				}
+				else if (mode.actionMode == 3)
+				{
+					DeleteCell(aim.position);
+					GeneratePlane();
+				}
+			}
+		}
+	}
+}
